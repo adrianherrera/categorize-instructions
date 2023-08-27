@@ -13,6 +13,8 @@
 static KNOB<std::string> KnobOutputFile(KNOB_MODE_WRITEONCE, "pintool", "o",
                                         "inst-categories.csv",
                                         "Specify output CSV path");
+static KNOB<bool> KnobAppend(KNOB_MODE_WRITEONCE, "pintool", "a",
+                             "0", "Append to output CSV");
 
 static std::map<INT32, UINT64> InstCategories;
 static std::ofstream OutFile;
@@ -32,7 +34,9 @@ static VOID Instruction(INS ins, VOID *v) {
 }
 
 static VOID Fini(INT32 code, VOID *v) {
-  OutFile << "category,count" << std::endl;
+  if (!KnobAppend) {
+    OutFile << "category,count" << std::endl;
+  }
   for (const auto &CategoryCount : InstCategories) {
     OutFile << CATEGORY_StringShort(CategoryCount.first) << ","
             << CategoryCount.second << std::endl;
@@ -45,7 +49,8 @@ int main(int argc, char *argv[]) {
     return Usage();
   }
 
-  OutFile.open(KnobOutputFile.Value().c_str());
+  OutFile.open(KnobOutputFile.Value().c_str(),
+               KnobAppend ? std::ios::app : std::ios::out);
 
   INS_AddInstrumentFunction(Instruction, nullptr);
   PIN_AddFiniFunction(Fini, nullptr);
